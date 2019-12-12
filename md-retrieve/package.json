@@ -1,0 +1,24 @@
+{
+  "name": "md-retrieve",
+  "version": "0.1.0",
+  "description": "SF Metadata Retrieve Tool",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "sfdc",
+    "metadata",
+    "retrieve"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "command-line-args": "^5.1.1",
+    "extract-zip": "^1.6.7",
+    "jsforce": "^1.9.1",
+    "path": "^0.12.7",
+    "tempy": "^0.3.0",
+    "xml-js": "^1.6.11"
+  }
+}

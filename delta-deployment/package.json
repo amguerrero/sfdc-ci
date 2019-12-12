@@ -1,0 +1,16 @@
+{
+  "name": "delta-deployment",
+  "version": "1.0.0",
+  "description": "SFDX Delta Deployment Plugin: Generates a package to deploy just the changes between 2 git commits",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Manuel Guerrero",
+  "license": "ISC",
+  "dependencies": {
+    "command-line-args": "^5.0.2",
+    "delta-deployment-core": "file:../delta-deployment-core",
+    "path": "^0.12.7"
+  }
+}

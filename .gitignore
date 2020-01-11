@@ -11,7 +11,8 @@ local.properties
 .loadpath
 .recommenders
 .project
-
+.idea/
+*.iml
 # NodeJS
 **/node_modules
 # External tool builders

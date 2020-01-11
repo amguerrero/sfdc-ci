@@ -16,6 +16,7 @@ const findRepositoryRootDirectory = (dirPath) => {
 const  config = {
     DEFAULT_TO_COMMIT: process.env.DEFAULT_TO_COMMIT || 'master',
     REPOSITORY_ROOT_DIRECTORY: process.env.REPOSITORY_ROOT_DIRECTORY || findRepositoryRootDirectory(path.resolve('.')),
+    SFDC_API_VERSION: process.env.SFDC_API_VERSION || '47.0',
 };
 
 module.exports = config;

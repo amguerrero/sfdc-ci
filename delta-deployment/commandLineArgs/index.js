@@ -9,6 +9,7 @@ if (!commandLineArgsDefinitions) {
         { name: 'to', type: String, alias: 't' },
         { name: 'salesforce-src', type: String, alias: 's' },
         { name: 'delta-dir', type: String, alias: 'd' },
+        { name: 'api-version', type: String, alias: 'a' },
     ];
 }
 

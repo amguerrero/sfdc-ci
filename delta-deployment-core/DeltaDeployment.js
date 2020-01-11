@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const xml2js = require('xml2js');
 
+const config = require('./config');
 const GitClient = require('./GitClient');
 
 const DEFAULT_TO_BRANCH = 'master';
@@ -11,6 +12,12 @@ class DeltaDeployment {
 
   constructor(gitRootDir) {
     this.gitClient = new GitClient(gitRootDir);
+  }
+
+  withApiVersion(apiVersion) {
+    this.apiVersion = apiVersion;
+
+    return this;
   }
 
   async createDelta(sfMetadataDir, from, to = DEFAULT_TO_BRANCH, deltaDir = DEFAULT_DELTA_DIR) {
@@ -55,6 +62,37 @@ class DeltaDeployment {
       modifiedAddedFiles.push(...affectedFiles['A']);
     }
 
+    const deletedFiles = [];
+    if (affectedFiles['D']) {
+      deletedFiles.push(...affectedFiles['D']);
+    }
+
+    const promises = [this._createDeploymentPackage(modifiedAddedFiles, from, path.join(deltaDir, 'deployment'))];
+
+    if (deletedFiles) {
+      promises.push(
+          this._createDestructiveChangesPackage(deletedFiles, path.join(deltaDir, 'destructiveChanges'))
+      );
+    }
+    const [ createDeploymentPackageResult, destructiveChangesResult ] = await Promise.all(promises);
+
+    const result = {
+      message: `Created Delta Deployment from ${from} to ${to}`,
+      from, to,
+      deploymentPackage: {
+        dir: createDeploymentPackageResult.deploymentPackageDir
+      }
+    };
+
+    if (destructiveChangesResult) {
+      result.destructiveChanges = {
+        dir: destructiveChangesResult.destructiveChangesDir
+      };
+    }
+    return result
+  }
+
+  async _createDeploymentPackage(modifiedAddedFiles, from, deploymentPackageDir) {
     const filesToRetrieve = new Set();
     const modifiedAuraComponents = new Set();
     const emailTemplateMembers = [];
@@ -85,31 +123,92 @@ class DeltaDeployment {
 
     const retrieveFilePromises = await [...filesToRetrieve, ...auraFiles.flat(2)].map((modifiedFile) => {
       const splitPath = modifiedFile.split(path.sep);
-  
+
       let relativePathOnDelta = splitPath.slice(-2);
       if (this._shouldCopySubdirectories(splitPath)) {
         relativePathOnDelta = splitPath.slice(-3);
       }
-      const absolutePathOnDelta = path.resolve(deltaDir, ...relativePathOnDelta);
+      const absolutePathOnDelta = path.resolve(deploymentPackageDir, ...relativePathOnDelta);
       this._createDirRecursive(path.dirname(absolutePathOnDelta));
 
       return this.gitClient.retireveFile(modifiedFile, from, absolutePathOnDelta);
     });
 
     // Copy static package.xml
-    fs.copyFileSync(path.resolve(__dirname, 'static', 'package.xml'), path.resolve(deltaDir, 'package.xml'));
+    fs.copyFileSync(path.resolve(__dirname, 'static', 'package.xml'), path.resolve(deploymentPackageDir, 'package.xml'));
     const packageStaticPath = path.resolve(__dirname, 'static', 'package.xml');
-    const packageDeltaPath = path.resolve(deltaDir, 'package.xml');
+    const packageDeltaPath = path.resolve(deploymentPackageDir, 'package.xml');
 
+    const packageObject = await this._parseXml(packageStaticPath);
+    packageObject.Package.version = [ this.apiVersion ];
     if (emailTemplateMembers.length > 0) {
-      const packageObject = await this._parseXml(packageStaticPath);
       packageObject.Package.types.push({members: emailTemplateMembers, name: ['EmailTemplate']});
-      fs.writeFileSync(packageDeltaPath, new xml2js.Builder().buildObject(packageObject));
     }
+    fs.writeFileSync(packageDeltaPath, new xml2js.Builder().buildObject(packageObject));
 
     await Promise.all(retrieveFilePromises);
 
-    return { message: 'Delta Package created', from, to, deltaDir };
+    return {
+      successful: true,
+      message: 'Deployment package created successfully',
+      deploymentPackageDir
+    };
+  }
+
+  async _createDestructiveChangesPackage(deletedFiles, destructiveChangesDir) {
+    this._createDirRecursive(path.resolve(destructiveChangesDir));
+
+    const emptyPackageXml = path.resolve(__dirname, 'static', 'destructiveChanges', 'package.xml');
+    const packageXmlObject = await this._parseXml(emptyPackageXml);
+    packageXmlObject.Package.version = [ this.apiVersion ];
+    fs.writeFileSync(
+        path.resolve(destructiveChangesDir, 'package.xml'),
+        new xml2js.Builder().buildObject(packageXmlObject)
+    );
+
+    const cleanDeletedFiles = deletedFiles.reduce((result, currentFile) => {
+      if (!currentFile.endsWith('-meta.xml')) {
+        const fileName = path.basename(currentFile, path.extname(currentFile));
+        const currentFileParts = path.dirname(currentFile).split(path.sep);
+        const metadataFolder = this._getMetadataType(currentFileParts[currentFileParts.length - 1]);
+
+        if (metadataFolder) {
+          if (!result[metadataFolder]) {
+            result[metadataFolder] = {
+              name: [metadataFolder],
+              members: new Set()
+            };
+          }
+
+          result[metadataFolder].members.add(fileName);
+        }
+      }
+
+      return result;
+    }, {});
+
+    const destructiveChangesXml = path.resolve(destructiveChangesDir, 'destructiveChanges.xml');
+    const destructiveChangesObject = await this._parseXml(emptyPackageXml);
+    destructiveChangesObject.Package.version = [ this.apiVersion ];
+    destructiveChangesObject.Package.types = [];
+    Object.values(cleanDeletedFiles).forEach(v => {
+      destructiveChangesObject.Package.types.push({
+        members: Array.from(v.members),
+        name: v.name
+      });
+    });
+    fs.writeFileSync(destructiveChangesXml, new xml2js.Builder().buildObject(destructiveChangesObject));
+
+    return {
+      success: true,
+      destructiveChangesDir
+    };
+  }
+
+  _getMetadataType(folderName) {
+    return (config.metdataTypes && config.metdataTypes[folderName]) ?
+      config.metdataTypes[folderName] :
+      undefined;
   }
 
   _parseXml(pathToXmlFile) {

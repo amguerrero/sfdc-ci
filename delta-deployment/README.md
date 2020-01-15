@@ -3,7 +3,7 @@ This node app is a CLI around `delta-deployment-core` which allows us to create 
 
 ## How to use it?
 ### Before using Delta Deployment
-Before using it we need to make sure we change to `delta-deployment-core` directory and run `npm insttall`, after that we can change back to `delta-deployment` folder and run `npm install`.
+Before using it we need to make sure we change to `delta-deployment-core` directory and run `npm install`, after that we can change back to `delta-deployment` folder and run `npm install`.
 This only needs to be done once every time we change `delta-deployment-core` or `delta-deployment` code or every time we delete the `node_modules` sub-folders.
 
 Assuming we're in the root of the repository:
@@ -43,6 +43,6 @@ $ node /path/to/sfdc-ci/delta-deployment \
 ```
 
 ### Deployment and Destructive Changes packages
-Delta deployment app creates a directory called `deployment` inside the directory we've set as delta dir by using `--delta-dir` or `-d` argument which contains the files that were added or modified in the `--from` branch compared with the `--to` branch. 
+Delta deployment app creates a directory called `deployment` inside the directory we've set as delta dir by using `--delta-dir` or `-d` argument which contains the files that were added or modified in the `--from` (or `-f`) branch compared with the `--to` (or `-t`) branch. 
 
 In the case that files were deleted in the `--from` branch, delta deployment app will create a directory called `destructiveChanges` inside the directory set as delta dir.

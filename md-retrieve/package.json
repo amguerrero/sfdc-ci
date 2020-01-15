@@ -16,7 +16,7 @@
   "dependencies": {
     "command-line-args": "^5.1.1",
     "extract-zip": "^1.6.7",
-    "jsforce": "^1.9.1",
+    "jsforce": "^1.9.3",
     "path": "^0.12.7",
     "tempy": "^0.3.0",
     "xml-js": "^1.6.11"

@@ -19,7 +19,7 @@
   "author": "Manuel Guerrero",
   "license": "ISC",
   "dependencies": {
-    "simple-git": "^1.105.0",
+    "simple-git": "^3.15.0",
     "xml2js": "^0.4.19"
   }
 }
